@@ -3,31 +3,37 @@
 @tailwind utilities;
 
 :root {
-  --bg: 248 250 252;
+  --bg: 250 246 238;
   --bg-elev: 255 255 255;
-  --bg-subtle: 241 245 249;
-  --text: 15 23 42;
-  --text-soft: 71 85 105;
-  --text-faint: 148 163 184;
-  --line: 226 232 240;
-  --line-strong: 203 213 225;
-  --brand: 79 70 229;
-  --brand-hover: 67 56 202;
-  --accent: 249 115 22;
+  --bg-subtle: 243 238 227;
+  --text: 28 25 23;
+  --text-soft: 87 83 78;
+  --text-faint: 168 162 158;
+  --line: 231 229 228;
+  --line-strong: 214 211 209;
+  --brand: 15 118 110;
+  --brand-hover: 17 94 89;
+  --accent: 180 83 9;
+  --ambient-a: 202 194 169;
+  --ambient-b: 188 161 122;
+  --ambient-c: 167 201 190;
 }
 
 .dark {
-  --bg: 11 18 32;
-  --bg-elev: 17 24 39;
-  --bg-subtle: 31 41 55;
-  --text: 241 245 249;
-  --text-soft: 203 213 225;
-  --text-faint: 148 163 184;
-  --line: 31 41 55;
-  --line-strong: 55 65 81;
-  --brand: 129 140 248;
-  --brand-hover: 165 180 252;
-  --accent: 251 146 60;
+  --bg: 15 16 18;
+  --bg-elev: 23 24 28;
+  --bg-subtle: 33 35 40;
+  --text: 250 250 249;
+  --text-soft: 214 211 209;
+  --text-faint: 168 162 158;
+  --line: 43 43 48;
+  --line-strong: 63 63 70;
+  --brand: 94 234 212;
+  --brand-hover: 45 212 191;
+  --accent: 251 191 36;
+  --ambient-a: 60 70 60;
+  --ambient-b: 80 58 38;
+  --ambient-c: 40 56 58;
 }
 
 html,
@@ -36,10 +42,67 @@ body {
 }
 
 body {
-  background-color: rgb(var(--bg));
   color: rgb(var(--text));
   font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
   -webkit-font-smoothing: antialiased;
+  background-color: rgb(var(--bg));
+  background-image:
+    radial-gradient(circle at 8% 12%, rgb(var(--ambient-a) / 0.45) 0, transparent 32%),
+    radial-gradient(circle at 92% 18%, rgb(var(--ambient-b) / 0.35) 0, transparent 36%),
+    radial-gradient(circle at 78% 92%, rgb(var(--ambient-c) / 0.4) 0, transparent 34%);
+  background-attachment: fixed;
+}
+
+.dark body {
+  background-image:
+    radial-gradient(circle at 8% 12%, rgb(var(--ambient-a) / 0.35) 0, transparent 36%),
+    radial-gradient(circle at 92% 18%, rgb(var(--ambient-b) / 0.3) 0, transparent 40%),
+    radial-gradient(circle at 78% 92%, rgb(var(--ambient-c) / 0.35) 0, transparent 36%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(var(--text) / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--text) / 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+  z-index: 0;
+}
+
+@layer components {
+  .glass-panel {
+    background-color: rgb(var(--bg-elev) / 0.68);
+    border: 1px solid rgb(var(--text) / 0.06);
+    backdrop-filter: saturate(140%) blur(18px);
+    -webkit-backdrop-filter: saturate(140%) blur(18px);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.5),
+      0 2px 4px rgb(28 25 23 / 0.04),
+      0 14px 42px -14px rgb(28 25 23 / 0.14);
+  }
+  .dark .glass-panel {
+    background-color: rgb(var(--bg-elev) / 0.58);
+    border-color: rgb(255 255 255 / 0.06);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.05),
+      0 2px 4px rgb(0 0 0 / 0.2),
+      0 14px 42px -14px rgb(0 0 0 / 0.55);
+  }
+  .glass-subtle {
+    background-color: rgb(var(--bg-elev) / 0.45);
+    border: 1px solid rgb(var(--text) / 0.05);
+    backdrop-filter: saturate(130%) blur(10px);
+    -webkit-backdrop-filter: saturate(130%) blur(10px);
+  }
+  .dark .glass-subtle {
+    background-color: rgb(var(--bg-elev) / 0.35);
+    border-color: rgb(255 255 255 / 0.05);
+  }
 }
 
 *:focus-visible {
@@ -56,12 +119,14 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgb(var(--line-strong));
+  background: rgb(var(--line-strong) / 0.7);
   border-radius: 999px;
-  border: 2px solid rgb(var(--bg));
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--text-faint));
+  background-clip: padding-box;
 }
 
 @media (prefers-reduced-motion: reduce) {

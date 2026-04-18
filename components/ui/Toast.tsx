@@ -25,13 +25,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={t.id}
             className={cn(
-              "pointer-events-auto rounded-xl border px-4 py-2.5 text-sm shadow-soft animate-fade-in backdrop-blur",
-              t.tone === "warn" &&
-                "border-amber-200 bg-amber-50/95 text-amber-900 dark:border-amber-800 dark:bg-amber-950/80 dark:text-amber-100",
-              t.tone === "error" &&
-                "border-red-200 bg-red-50/95 text-red-900 dark:border-red-800 dark:bg-red-950/80 dark:text-red-100",
-              (!t.tone || t.tone === "default") &&
-                "border-line bg-surface/95 text-ink dark:border-line-dark dark:bg-surface-dark/95 dark:text-ink-inverse"
+              "pointer-events-auto glass-panel animate-fade-in rounded-2xl px-4 py-2.5 text-sm",
+              t.tone === "warn" && "text-amber-900 dark:text-amber-100",
+              t.tone === "error" && "text-red-800 dark:text-red-200",
+              (!t.tone || t.tone === "default") && "text-ink dark:text-ink-inverse"
             )}
           >
             {t.msg}

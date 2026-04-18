@@ -8,17 +8,17 @@ type Size = "sm" | "md" | "icon";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-brand text-white hover:bg-brand-hover disabled:bg-brand/40",
+    "bg-brand text-white shadow-soft hover:bg-brand-hover disabled:bg-brand/40",
   accent:
-    "bg-accent text-white hover:bg-accent-hover disabled:bg-accent/40",
+    "bg-accent text-white shadow-soft hover:bg-accent-hover disabled:bg-accent/40",
   ghost:
-    "bg-transparent text-ink hover:bg-surface-muted dark:text-ink-inverse dark:hover:bg-surface-dark-muted",
+    "bg-transparent text-ink hover:bg-ink/5 dark:text-ink-inverse dark:hover:bg-white/5",
   outline:
-    "border border-line bg-surface text-ink hover:bg-surface-muted dark:border-line-dark dark:bg-surface-dark dark:text-ink-inverse dark:hover:bg-surface-dark-muted",
+    "border border-ink/10 bg-white/40 text-ink backdrop-blur-sm hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-ink-inverse dark:hover:bg-white/10",
   subtle:
-    "bg-surface-muted text-ink hover:bg-surface-subtle dark:bg-surface-dark-muted dark:text-ink-inverse dark:hover:bg-surface-dark-subtle",
+    "bg-ink/5 text-ink hover:bg-ink/10 dark:bg-white/5 dark:text-ink-inverse dark:hover:bg-white/10",
   danger:
-    "bg-red-500 text-white hover:bg-red-600 disabled:bg-red-300",
+    "bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300",
 };
 
 const sizes: Record<Size, string> = {

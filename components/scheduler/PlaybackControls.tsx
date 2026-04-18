@@ -45,7 +45,7 @@ export function PlaybackControls() {
   const pct = makespan > 0 ? (currentTime / makespan) * 100 : 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-card dark:border-line-dark dark:bg-surface-dark">
+    <div className="glass-panel flex flex-wrap items-center gap-3 rounded-2xl p-3">
       <Button
         variant="accent"
         size="md"
@@ -77,7 +77,7 @@ export function PlaybackControls() {
       </Button>
 
       <div className="ml-auto flex items-center gap-3">
-        <div className="flex items-center gap-1.5 rounded-xl bg-surface-muted px-2 py-1 text-xs text-ink-soft dark:bg-surface-dark-muted">
+        <div className="flex items-center gap-1.5 rounded-xl border border-ink/10 bg-white/40 px-2 py-1 text-xs text-ink-soft backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
           <Gauge className="h-3.5 w-3.5" />
           {SPEEDS.map((s) => (
             <button
@@ -88,7 +88,7 @@ export function PlaybackControls() {
                 "cursor-pointer rounded-lg px-2 py-0.5 font-mono transition-colors",
                 speed === s
                   ? "bg-brand text-white"
-                  : "hover:bg-surface dark:hover:bg-surface-dark"
+                  : "hover:bg-ink/5 dark:hover:bg-white/10"
               )}
             >
               {s}x
@@ -100,7 +100,7 @@ export function PlaybackControls() {
         </div>
       </div>
 
-      <div className="relative h-2 w-full flex-1 cursor-pointer overflow-hidden rounded-full bg-surface-muted dark:bg-surface-dark-muted"
+      <div className="relative h-2 w-full flex-1 cursor-pointer overflow-hidden rounded-full bg-ink/5 dark:bg-white/10"
         onClick={(e) => {
           const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
           const x = (e.clientX - rect.left) / rect.width;

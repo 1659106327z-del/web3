@@ -38,15 +38,15 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <ToastProvider>
-          <div className="flex min-h-screen w-full">
-            <Sidebar />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <TopBar />
-              <main className="flex-1 px-6 py-6 lg:px-10 lg:py-8">
-                {children}
-              </main>
+            <div className="relative z-10 flex min-h-screen w-full">
+              <Sidebar />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <TopBar />
+                <main className="flex-1 px-4 py-6 md:pl-6 md:pr-6 lg:pr-10 lg:py-8">
+                  {children}
+                </main>
+              </div>
             </div>
-          </div>
           </ToastProvider>
         </ThemeProvider>
       </body>

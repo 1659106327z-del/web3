@@ -60,7 +60,7 @@ export function ProcessInputPanel({ showPriority }: { showPriority?: boolean }) 
         </div>
       </div>
 
-      <div className="rounded-xl border border-line bg-surface-muted p-3 dark:border-line-dark dark:bg-surface-dark-muted">
+      <div className="glass-subtle rounded-xl p-3">
         <div className="mb-2 text-xs text-ink-soft">新增一条</div>
         <div
           className={cn(
@@ -100,7 +100,7 @@ export function ProcessInputPanel({ showPriority }: { showPriority?: boolean }) 
 
       <div className="flex-1 overflow-auto">
         {processes.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-line p-6 text-center text-xs text-ink-soft dark:border-line-dark">
+          <div className="rounded-xl border border-dashed border-ink/15 p-6 text-center text-xs text-ink-soft dark:border-white/15">
             暂无进程。点击上方“随机生成”快速构造测试数据。
           </div>
         ) : (
@@ -118,7 +118,7 @@ export function ProcessInputPanel({ showPriority }: { showPriority?: boolean }) 
               {processes.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-t border-line/70 font-mono text-ink dark:border-line-dark/70 dark:text-ink-inverse"
+                  className="border-t border-ink/10 font-mono text-ink dark:border-white/10 dark:text-ink-inverse"
                 >
                   <td className="px-2 py-1.5">
                     <span className="inline-flex items-center gap-2">
@@ -138,7 +138,7 @@ export function ProcessInputPanel({ showPriority }: { showPriority?: boolean }) 
                     <button
                       type="button"
                       onClick={() => removeProcess(p.id)}
-                      className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-ink-soft hover:bg-surface-muted hover:text-red-500 dark:hover:bg-surface-dark-muted"
+                      className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-ink-soft hover:bg-ink/5 hover:text-red-500 dark:hover:bg-white/10"
                       aria-label={`删除 ${p.name}`}
                     >
                       <X className="h-3.5 w-3.5" />

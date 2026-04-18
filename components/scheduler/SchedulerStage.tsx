@@ -7,44 +7,81 @@ import { deriveSnapshots, type ZoneKey } from "@/lib/scheduler/derive";
 import { cn } from "@/lib/utils";
 
 const PROC_COLORS = [
-  "#6366F1", "#6366F1", "#10B981", "#F59E0B", "#EF4444", "#06B6D4", "#A855F7",
+  "#0F766E",
+  "#0F766E",
+  "#B45309",
+  "#65A30D",
+  "#BE185D",
+  "#0369A1",
+  "#7C3AED",
 ];
 
-const CARD_W = 62;
-const CARD_H = 40;
+type Zone = {
+  key: ZoneKey;
+  label: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  cols: number;
+  tone?: "default" | "cpu" | "done" | "upcoming";
+};
 
-/**
- * Layout (viewBox 760 x 360):
- *   ┌──────────┐        ┌──────────┐        ┌──────────┐
- *   │ upcoming │        │   CPU    │        │ completed│
- *   │  120,30  │        │ (center) │        │ 640,30   │
- *   └──────────┘        └──────────┘        └──────────┘
- *
- *       ready queue (center-left)         blocked queue (center-right)
- *       at ~200,140 stacking right        at ~560,140 stacking left
- */
-type Zone = { key: ZoneKey; label: string; x: number; y: number; w: number; h: number; dir: "row" | "col" };
+const VB = { w: 900, h: 360 };
+
 const ZONES: Zone[] = [
-  { key: "upcoming", label: "待到达", x: 30, y: 30, w: 150, h: 70, dir: "row" },
-  { key: "ready", label: "就绪队列", x: 30, y: 130, w: 300, h: 90, dir: "row" },
-  { key: "cpu", label: "CPU", x: 330, y: 30, w: 100, h: 190, dir: "row" },
-  { key: "blocked", label: "阻塞队列", x: 430, y: 130, w: 300, h: 90, dir: "row" },
-  { key: "done", label: "完成队列", x: 430, y: 30, w: 300, h: 70, dir: "row" },
+  { key: "upcoming", label: "待到达", x: 24, y: 20, w: 200, h: 96, cols: 3, tone: "upcoming" },
+  { key: "done", label: "完成队列", x: 240, y: 20, w: 636, h: 96, cols: 6 },
+  { key: "ready", label: "就绪队列", x: 24, y: 140, w: 340, h: 200, cols: 3 },
+  { key: "cpu", label: "CPU", x: 388, y: 140, w: 124, h: 200, cols: 1, tone: "cpu" },
+  { key: "blocked", label: "阻塞队列", x: 536, y: 140, w: 340, h: 200, cols: 3 },
 ];
 
-function positionFor(zone: Zone, index: number) {
+function cardSizeFor(count: number) {
+  if (count <= 1) return { w: 72, h: 44 };
+  if (count <= 3) return { w: 62, h: 40 };
+  if (count <= 4) return { w: 56, h: 36 };
+  if (count <= 5) return { w: 50, h: 34 };
+  return { w: 46, h: 32 };
+}
+
+function positionInZone(
+  zone: Zone,
+  index: number,
+  count: number,
+  card: { w: number; h: number }
+) {
+  const pad = 12;
+  const labelPad = zone.key === "cpu" ? 0 : 18;
+  const innerW = zone.w - pad * 2;
+  const innerH = zone.h - pad - labelPad - pad;
+
   if (zone.key === "cpu") {
     return {
-      x: zone.x + (zone.w - CARD_W) / 2,
-      y: zone.y + (zone.h - CARD_H) / 2,
+      x: zone.x + (zone.w - card.w) / 2,
+      y: zone.y + (zone.h - card.h) / 2 + 6,
     };
   }
-  const gap = 6;
-  const step = CARD_W + gap;
-  if (zone.dir === "row") {
-    return { x: zone.x + 10 + index * step, y: zone.y + (zone.h - CARD_H) / 2 };
-  }
-  return { x: zone.x + (zone.w - CARD_W) / 2, y: zone.y + 10 + index * (CARD_H + gap) };
+
+  const cols = Math.max(1, Math.min(zone.cols, count || 1));
+  const rows = Math.ceil((count || 1) / cols);
+
+  const gapX = cols > 1 ? Math.max(4, (innerW - cols * card.w) / (cols - 1)) : 0;
+  const gapY =
+    rows > 1 ? Math.max(4, (innerH - rows * card.h) / (rows - 1)) : 0;
+
+  const col = index % cols;
+  const row = Math.floor(index / cols);
+
+  const totalW = cols * card.w + (cols - 1) * gapX;
+  const totalH = rows * card.h + (rows - 1) * gapY;
+  const startX = zone.x + pad + (innerW - totalW) / 2;
+  const startY = zone.y + pad + labelPad + Math.max(0, (innerH - totalH) / 2);
+
+  return {
+    x: startX + col * (card.w + gapX),
+    y: startY + row * (card.h + gapY),
+  };
 }
 
 export function SchedulerStage() {
@@ -61,9 +98,36 @@ export function SchedulerStage() {
 
   const snapMap = new Map(snapshots.map((s) => [s.pid, s]));
 
+  const countsByZone = useMemo(() => {
+    const m = new Map<ZoneKey, number>();
+    for (const s of snapshots) m.set(s.zone, (m.get(s.zone) ?? 0) + 1);
+    return m;
+  }, [snapshots]);
+
+  const card = cardSizeFor(processes.length);
+
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-line bg-surface-muted/50 p-3 dark:border-line-dark dark:bg-surface-dark-muted/40">
-      <svg viewBox="0 0 760 250" className="block h-auto w-full">
+    <div className="glass-subtle relative w-full overflow-hidden rounded-2xl p-4">
+      <svg
+        viewBox={`0 0 ${VB.w} ${VB.h}`}
+        className="block h-auto w-full"
+        role="img"
+        aria-label="进程调度舞台"
+      >
+        <defs>
+          <marker
+            id="arrow-h"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+          </marker>
+        </defs>
+
         {ZONES.map((z) => (
           <g key={z.key}>
             <rect
@@ -71,57 +135,64 @@ export function SchedulerStage() {
               y={z.y}
               width={z.w}
               height={z.h}
-              rx={14}
-              ry={14}
+              rx={16}
+              ry={16}
               className={cn(
-                "fill-surface stroke-line dark:fill-surface-dark dark:stroke-line-dark",
-                z.key === "cpu" && "fill-brand/5 stroke-brand/40"
+                "fill-white/60 stroke-ink/10 dark:fill-white/5 dark:stroke-white/10",
+                z.tone === "cpu" &&
+                  "fill-brand/[0.08] stroke-brand/45 dark:fill-brand/10 dark:stroke-brand/45"
               )}
               strokeWidth={1.2}
             />
             <text
-              x={z.x + 12}
-              y={z.y + 14}
+              x={z.x + 14}
+              y={z.y + 16}
               className="fill-ink-soft"
               fontSize={11}
               fontFamily="var(--font-mono), monospace"
+              fontWeight={600}
             >
               {z.label}
             </text>
-            {z.key === "cpu" && (
-              <text
-                x={z.x + z.w - 10}
-                y={z.y + 14}
-                textAnchor="end"
-                className="fill-brand"
-                fontSize={10}
-                fontFamily="var(--font-mono), monospace"
-              >
-                处理机
-              </text>
-            )}
+            <text
+              x={z.x + z.w - 14}
+              y={z.y + 16}
+              textAnchor="end"
+              className={cn(
+                "fill-ink-faint",
+                z.tone === "cpu" && "fill-brand"
+              )}
+              fontSize={10}
+              fontFamily="var(--font-mono), monospace"
+            >
+              {z.tone === "cpu" ? "处理机" : `${countsByZone.get(z.key) ?? 0}`}
+            </text>
           </g>
         ))}
 
-        {/* connecting arrows (subtle) */}
-        <g stroke="currentColor" className="text-line-strong dark:text-line-dark" strokeWidth={1} fill="none" opacity={0.5}>
-          <path d="M 180 165 L 330 125" strokeDasharray="3 3" markerEnd="url(#arrow)" />
-          <path d="M 430 125 L 430 165" strokeDasharray="3 3" markerEnd="url(#arrow)" />
-          <path d="M 430 60 L 430 60" />
-          <path d="M 380 30 L 500 30" strokeDasharray="3 3" markerEnd="url(#arrow)" transform="translate(0,-6)" />
+        {/* connecting arrows between zones */}
+        <g
+          className="text-ink-faint dark:text-white/30"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.2}
+          strokeDasharray="3 4"
+        >
+          <path d="M 200 110 L 330 150" markerEnd="url(#arrow-h)" />
+          <path d="M 370 240 L 385 240" markerEnd="url(#arrow-h)" />
+          <path d="M 515 240 L 530 240" markerEnd="url(#arrow-h)" />
+          <path d="M 450 138 L 450 118" markerEnd="url(#arrow-h)" />
         </g>
-        <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" className="text-line-strong dark:text-line-dark" />
-          </marker>
-        </defs>
 
         {processes.map((p) => {
           const snap = snapMap.get(p.id);
           const zone = ZONES.find((z) => z.key === (snap?.zone ?? "upcoming"))!;
-          const { x, y } = positionFor(zone, snap?.indexInZone ?? 0);
+          const countInZone = countsByZone.get(zone.key) ?? 1;
+          const { x, y } = positionInZone(zone, snap?.indexInZone ?? 0, countInZone, card);
           const color = PROC_COLORS[(p.colorIndex ?? 1) % PROC_COLORS.length];
           const isCpu = snap?.zone === "cpu";
+          const isDone = snap?.zone === "done";
+
           return (
             <motion.g
               key={p.id}
@@ -129,68 +200,77 @@ export function SchedulerStage() {
               animate={{ x, y }}
               transition={{
                 type: reduced ? "tween" : "spring",
-                stiffness: 160,
-                damping: 22,
+                stiffness: 180,
+                damping: 24,
                 duration: reduced ? 0 : undefined,
               }}
             >
               <rect
-                width={CARD_W}
-                height={CARD_H}
+                width={card.w}
+                height={card.h}
                 rx={10}
                 ry={10}
                 fill={color}
-                opacity={snap?.zone === "done" ? 0.45 : 1}
+                opacity={isDone ? 0.4 : 1}
               />
               {isCpu && (
                 <rect
-                  width={CARD_W}
-                  height={CARD_H}
+                  width={card.w}
+                  height={card.h}
                   rx={10}
                   ry={10}
                   fill="none"
-                  stroke="#F97316"
+                  stroke="#B45309"
                   strokeWidth={2}
                   strokeDasharray="4 3"
                 >
-                  <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="0.8s" repeatCount="indefinite" />
+                  <animate
+                    attributeName="stroke-dashoffset"
+                    from="0"
+                    to="-14"
+                    dur="0.8s"
+                    repeatCount="indefinite"
+                  />
                 </rect>
               )}
               <text
-                x={CARD_W / 2}
-                y={CARD_H / 2 - 2}
+                x={card.w / 2}
+                y={card.h / 2 - (card.h > 34 ? 3 : 0)}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill="#ffffff"
-                fontSize={12}
+                fontSize={Math.max(10, card.h * 0.32)}
                 fontFamily="var(--font-mono), monospace"
                 fontWeight={700}
               >
                 {p.name}
               </text>
-              <text
-                x={CARD_W / 2}
-                y={CARD_H / 2 + 11}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fill="#ffffff"
-                opacity={0.85}
-                fontSize={9}
-                fontFamily="var(--font-mono), monospace"
-              >
-                {snap ? `剩 ${Math.max(0, Math.round(snap.remaining * 10) / 10)}` : ""}
-              </text>
+              {card.h >= 34 && (
+                <text
+                  x={card.w / 2}
+                  y={card.h / 2 + card.h * 0.28}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill="#ffffff"
+                  opacity={0.85}
+                  fontSize={Math.max(8, card.h * 0.22)}
+                  fontFamily="var(--font-mono), monospace"
+                >
+                  {snap ? `剩 ${Math.max(0, Math.round(snap.remaining * 10) / 10)}` : ""}
+                </text>
+              )}
             </motion.g>
           );
         })}
       </svg>
 
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-soft">
-        <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-brand" /> CPU
+      <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-ink-soft">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand" />
+          CPU 运行
         </span>
-        <span>抢占时流回阻塞队列，随后重新进入就绪队列</span>
-        <span>运行完成 → 完成队列</span>
+        <span>抢占时流入阻塞队列，随后重新进入就绪队列</span>
+        <span>运行结束 → 完成队列</span>
       </div>
     </div>
   );

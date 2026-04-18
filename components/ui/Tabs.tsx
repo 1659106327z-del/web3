@@ -11,7 +11,7 @@ export function LinkTabs({ items, className }: { items: Item[]; className?: stri
   return (
     <nav
       className={cn(
-        "flex w-full gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1 dark:border-line-dark dark:bg-surface-dark",
+        "glass-subtle flex w-full gap-1 overflow-x-auto rounded-2xl p-1",
         className
       )}
     >
@@ -22,10 +22,10 @@ export function LinkTabs({ items, className }: { items: Item[]; className?: stri
             key={it.href}
             href={it.href}
             className={cn(
-              "relative flex min-w-[84px] cursor-pointer flex-col items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+              "relative flex min-w-[84px] cursor-pointer flex-col items-center justify-center rounded-xl px-3 py-1.5 text-xs font-medium transition-colors",
               active
                 ? "bg-brand text-white shadow-soft"
-                : "text-ink-soft hover:bg-surface-muted dark:hover:bg-surface-dark-muted"
+                : "text-ink-soft hover:bg-ink/5 dark:hover:bg-white/5"
             )}
           >
             <span className="leading-tight">{it.label}</span>
@@ -33,7 +33,7 @@ export function LinkTabs({ items, className }: { items: Item[]; className?: stri
               <span
                 className={cn(
                   "mt-0.5 text-[10px] font-normal",
-                  active ? "text-white/80" : "text-ink-faint"
+                  active ? "text-white/85" : "text-ink-faint"
                 )}
               >
                 {it.sub}

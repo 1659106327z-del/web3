@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import type { GanttSegment, Process } from "@/lib/scheduler/types";
 
 const PROC_COLORS = [
-  "#6366F1", "#6366F1", "#10B981", "#F59E0B", "#EF4444", "#06B6D4", "#A855F7",
+  "#0F766E", "#0F766E", "#B45309", "#65A30D", "#BE185D", "#0369A1", "#7C3AED",
 ];
 
 type Props = {
@@ -51,10 +51,10 @@ export function GanttChart({
       ctx.clearRect(0, 0, w, h);
 
       const isDark = document.documentElement.classList.contains("dark");
-      const colText = isDark ? "#CBD5E1" : "#475569";
-      const colFaint = isDark ? "#64748B" : "#94A3B8";
-      const colLine = isDark ? "#1F2937" : "#E2E8F0";
-      const colRow = isDark ? "#0F172A" : "#F8FAFC";
+      const colText = isDark ? "#D6D3D1" : "#57534E";
+      const colFaint = isDark ? "#78716C" : "#A8A29E";
+      const colLine = isDark ? "#2B2B30" : "#E7E5E4";
+      const colRow = isDark ? "rgba(255,255,255,0.03)" : "rgba(28,25,23,0.03)";
 
       const maxT = Math.max(1, makespan);
       const chartW = w - padL - padR;
@@ -146,7 +146,7 @@ export function GanttChart({
       // cursor line
       if (typeof currentTime === "number" && currentTime >= 0 && currentTime <= maxT) {
         const cx = padL + currentTime * scale;
-        ctx.strokeStyle = "#F97316";
+        ctx.strokeStyle = "#B45309";
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 3]);
         ctx.beginPath();
@@ -154,7 +154,7 @@ export function GanttChart({
         ctx.lineTo(cx, h - 16);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = "#F97316";
+        ctx.fillStyle = "#B45309";
         ctx.beginPath();
         ctx.arc(cx, headerH - 4, 3, 0, Math.PI * 2);
         ctx.fill();
