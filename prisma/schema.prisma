@@ -1,0 +1,36 @@
+// Prisma schema for OS Scheduler Visualizer
+// 登录注册、跨设备同步所需的最小模型集合
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String?  @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  presets      Preset[]
+}
+
+model Preset {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  algorithm   String   // 算法 key：fcfs / sjf / srtf / rr / psa / mfq
+  processes   String   // JSON: Process[]
+  config      String   // JSON: AlgoConfig
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}

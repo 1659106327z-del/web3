@@ -1,9 +1,11 @@
 "use client";
 
-import { Menu, Moon, Sun } from "lucide-react";
+import { LogIn, LogOut, Menu, Moon, Sun, User } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
+import { useSession } from "./SessionProvider";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
 const titleMap: { prefix: string; title: string; sub: string }[] = [
@@ -25,6 +27,8 @@ export function TopBar() {
   const meta =
     titleMap.find((m) => pathname.startsWith(m.prefix)) ?? titleMap[0];
   const { theme, toggle } = useTheme();
+  const { user, logout } = useSession();
+  const { push } = useToast();
 
   return (
     <header className="sticky top-4 z-20 mx-4 mt-4 lg:mx-0 lg:mr-10 lg:mt-6">
@@ -56,6 +60,36 @@ export function TopBar() {
               </Link>
             ))}
           </nav>
+          {user ? (
+            <div className="flex items-center gap-1 rounded-xl border border-ink/5 bg-ink/[0.03] pl-2 pr-1 text-xs text-ink-soft dark:border-white/5 dark:bg-white/[0.04]">
+              <User className="h-3.5 w-3.5" />
+              <Link
+                href="/account"
+                className="max-w-[120px] truncate font-medium text-ink hover:text-brand dark:text-ink-inverse"
+                title={user.username}
+              >
+                {user.username}
+              </Link>
+              <button
+                type="button"
+                onClick={async () => {
+                  await logout();
+                  push("已退出登录");
+                }}
+                className="ml-1 inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-ink-soft hover:bg-ink/5 hover:text-ink dark:hover:bg-white/10"
+                aria-label="退出登录"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/account"
+              className="hidden h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-ink/10 bg-white/40 px-3 text-xs font-medium text-ink backdrop-blur-sm transition-colors hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-ink-inverse dark:hover:bg-white/10 sm:inline-flex"
+            >
+              <LogIn className="h-3.5 w-3.5" /> 登录
+            </Link>
+          )}
           <button
             type="button"
             onClick={toggle}

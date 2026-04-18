@@ -7,6 +7,7 @@ import { PlaybackControls } from "./PlaybackControls";
 import { SchedulerStage } from "./SchedulerStage";
 import { GanttChart } from "./GanttChart";
 import { StatsTable } from "./StatsTable";
+import { PresetPanel } from "./PresetPanel";
 import { Card } from "@/components/ui/Card";
 import { useSimulation } from "@/store/simulationStore";
 import type { AlgorithmKey } from "@/lib/scheduler/types";
@@ -44,6 +45,9 @@ export function VisualizeWorkspace({
         </Card>
         <Card className="min-h-[280px]">
           <ProcessInputPanel showPriority={needsPriority} />
+        </Card>
+        <Card>
+          <PresetPanel />
         </Card>
       </div>
 

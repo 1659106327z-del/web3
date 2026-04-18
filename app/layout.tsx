@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { ToastProvider } from "@/components/ui/Toast";
+import { SessionProvider } from "@/components/layout/SessionProvider";
 
 const firaSans = Fira_Sans({
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
         className={`${firaSans.variable} ${firaCode.variable} font-sans antialiased`}
       >
         <ThemeProvider>
+          <SessionProvider>
           <ToastProvider>
             <div className="relative z-10 flex min-h-screen w-full">
               <Sidebar />
@@ -48,6 +50,7 @@ export default function RootLayout({
               </div>
             </div>
           </ToastProvider>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>
