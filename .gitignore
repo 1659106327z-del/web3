@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+dist/
+.env*
+!.env.example
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Python caches (from local skill scripts)
+**/__pycache__/
+*.pyc

@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 248 250 252;
+  --bg-elev: 255 255 255;
+  --bg-subtle: 241 245 249;
+  --text: 15 23 42;
+  --text-soft: 71 85 105;
+  --text-faint: 148 163 184;
+  --line: 226 232 240;
+  --line-strong: 203 213 225;
+  --brand: 79 70 229;
+  --brand-hover: 67 56 202;
+  --accent: 249 115 22;
+}
+
+.dark {
+  --bg: 11 18 32;
+  --bg-elev: 17 24 39;
+  --bg-subtle: 31 41 55;
+  --text: 241 245 249;
+  --text-soft: 203 213 225;
+  --text-faint: 148 163 184;
+  --line: 31 41 55;
+  --line-strong: 55 65 81;
+  --brand: 129 140 248;
+  --brand-hover: 165 180 252;
+  --accent: 251 146 60;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--line-strong));
+  border-radius: 999px;
+  border: 2px solid rgb(var(--bg));
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--text-faint));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
