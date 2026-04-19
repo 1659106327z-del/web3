@@ -1,5 +1,12 @@
+import { Suspense } from "react";
 import { AccountPlaceholder } from "@/components/account/AccountPlaceholder";
 
+export const dynamic = "force-dynamic";
+
 export default function AccountPage() {
-  return <AccountPlaceholder />;
+  return (
+    <Suspense fallback={null}>
+      <AccountPlaceholder />
+    </Suspense>
+  );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
   Info,
@@ -19,14 +20,30 @@ import { cn } from "@/lib/utils";
 
 type Tab = "login" | "register";
 
+const DEFAULT_NEXT = "/visualize/fcfs";
+
 export function AccountPlaceholder() {
   const { user, loading, refresh, logout } = useSession();
+  const router = useRouter();
+  const search = useSearchParams();
+  const nextRaw = search?.get("next");
+  const next = nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//")
+    ? nextRaw
+    : DEFAULT_NEXT;
+
   const [tab, setTab] = useState<Tab>("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const { push } = useToast();
+
+  // 已登录访问 /account：自动跳转到 next（除非 next 就是 /account 本身）
+  useEffect(() => {
+    if (user && !loading && !next.startsWith("/account")) {
+      router.replace(next);
+    }
+  }, [user, loading, next, router]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +68,10 @@ export function AccountPlaceholder() {
       push(tab === "login" ? "登录成功" : "账户创建成功，已自动登录");
       await refresh();
       setPassword("");
+      // 登录成功后跳到 next（除非 next 就是 /account）
+      if (!next.startsWith("/account")) {
+        router.replace(next);
+      }
     } catch {
       push("网络异常，请检查服务器是否运行", "error");
     } finally {

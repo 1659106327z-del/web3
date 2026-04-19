@@ -1,5 +1,5 @@
-import { ComparisonWorkspace } from "@/components/scheduler/ComparisonWorkspace";
+import { ComparisonPage } from "@/components/scheduler/ComparisonPage";
 
-export default function ComparisonPage() {
-  return <ComparisonWorkspace />;
+export default function Page() {
+  return <ComparisonPage />;
 }

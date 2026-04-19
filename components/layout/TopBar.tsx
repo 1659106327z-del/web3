@@ -10,13 +10,15 @@ import { cn } from "@/lib/utils";
 
 const titleMap: { prefix: string; title: string; sub: string }[] = [
   { prefix: "/visualize", title: "算法可视化", sub: "单一算法的完整调度流程演示" },
-  { prefix: "/comparison", title: "算法对比", sub: "同组数据下双算法并排甘特图对比" },
+  { prefix: "/designer/mfq", title: "MFQ 设计器", sub: "自定义多级反馈队列层数与时间片，量化评估系统性能" },
+  { prefix: "/comparison", title: "算法对比", sub: "双算法并排或六算法矩阵 + 雷达图对比" },
   { prefix: "/intro", title: "相关介绍", sub: "各调度算法的原理与发展脉络" },
   { prefix: "/account", title: "账户", sub: "登录 / 注册（多端同账号）" },
 ];
 
 const mobileLinks = [
   { href: "/visualize/fcfs", label: "可视化" },
+  { href: "/designer/mfq", label: "MFQ" },
   { href: "/comparison", label: "对比" },
   { href: "/intro/fcfs", label: "介绍" },
   { href: "/account", label: "账户" },

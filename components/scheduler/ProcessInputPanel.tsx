@@ -6,6 +6,7 @@ import { useSimulation, MAX_PROCESSES } from "@/store/simulationStore";
 import { Button } from "@/components/ui/Button";
 import { NumberField } from "@/components/ui/NumberField";
 import { useToast } from "@/components/ui/Toast";
+import { CasePickerButton } from "./CasePicker";
 import { cn } from "@/lib/utils";
 
 const procColor = ["", "bg-proc-1", "bg-proc-2", "bg-proc-3", "bg-proc-4", "bg-proc-5", "bg-proc-6"];
@@ -38,7 +39,8 @@ export function ProcessInputPanel({ showPriority }: { showPriority?: boolean }) 
             已添加 {processes.length} / {MAX_PROCESSES}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          <CasePickerButton />
           <Button
             size="sm"
             variant="subtle"
@@ -46,7 +48,7 @@ export function ProcessInputPanel({ showPriority }: { showPriority?: boolean }) 
             title="随机生成 3-6 个进程"
           >
             <Shuffle className="h-3.5 w-3.5" />
-            随机生成
+            随机
           </Button>
           <Button
             size="sm"

@@ -8,6 +8,7 @@ import {
   GitCompareArrows,
   User,
   Cpu,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +21,17 @@ const items = [
     Icon: Activity,
   },
   {
+    href: "/designer/mfq",
+    match: "/designer",
+    label: "MFQ 设计器",
+    desc: "自定义多级队列",
+    Icon: Layers,
+  },
+  {
     href: "/comparison",
     match: "/comparison",
     label: "算法对比",
-    desc: "并排甘特图",
+    desc: "双算法 / 全矩阵",
     Icon: GitCompareArrows,
   },
   {
