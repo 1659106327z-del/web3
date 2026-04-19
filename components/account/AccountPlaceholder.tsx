@@ -20,16 +20,17 @@ import { cn } from "@/lib/utils";
 
 type Tab = "login" | "register";
 
-const DEFAULT_NEXT = "/visualize/fcfs";
-
 export function AccountPlaceholder() {
   const { user, loading, refresh, logout } = useSession();
   const router = useRouter();
   const search = useSearchParams();
   const nextRaw = search?.get("next");
-  const next = nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//")
-    ? nextRaw
-    : DEFAULT_NEXT;
+  // 仅当 URL 上明确带 ?next=（来自鉴权跳转）时才自动回跳；
+  // 用户主动点侧栏「账户」时 next 为空，应留在账户页查看资料
+  const explicitNext =
+    nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//") && !nextRaw.startsWith("/account")
+      ? nextRaw
+      : null;
 
   const [tab, setTab] = useState<Tab>("login");
   const [username, setUsername] = useState("");
@@ -38,12 +39,11 @@ export function AccountPlaceholder() {
   const [pending, setPending] = useState(false);
   const { push } = useToast();
 
-  // 已登录访问 /account：自动跳转到 next（除非 next 就是 /account 本身）
   useEffect(() => {
-    if (user && !loading && !next.startsWith("/account")) {
-      router.replace(next);
+    if (user && !loading && explicitNext) {
+      router.replace(explicitNext);
     }
-  }, [user, loading, next, router]);
+  }, [user, loading, explicitNext, router]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,10 +68,7 @@ export function AccountPlaceholder() {
       push(tab === "login" ? "登录成功" : "账户创建成功，已自动登录");
       await refresh();
       setPassword("");
-      // 登录成功后跳到 next（除非 next 就是 /account）
-      if (!next.startsWith("/account")) {
-        router.replace(next);
-      }
+      router.replace(explicitNext ?? "/visualize/fcfs");
     } catch {
       push("网络异常，请检查服务器是否运行", "error");
     } finally {

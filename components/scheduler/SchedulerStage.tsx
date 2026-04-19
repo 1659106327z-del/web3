@@ -16,72 +16,25 @@ const PROC_COLORS = [
   "#7C3AED",
 ];
 
-type Zone = {
+interface Zone {
   key: ZoneKey;
   label: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
   cols: number;
   tone?: "default" | "cpu" | "done" | "upcoming";
-};
-
-const VB = { w: 900, h: 360 };
-
-const ZONES: Zone[] = [
-  { key: "upcoming", label: "待到达", x: 24, y: 20, w: 200, h: 96, cols: 3, tone: "upcoming" },
-  { key: "done", label: "完成队列", x: 240, y: 20, w: 636, h: 96, cols: 6 },
-  { key: "ready", label: "就绪队列", x: 24, y: 140, w: 340, h: 200, cols: 3 },
-  { key: "cpu", label: "CPU", x: 388, y: 140, w: 124, h: 200, cols: 1, tone: "cpu" },
-  { key: "blocked", label: "阻塞队列", x: 536, y: 140, w: 340, h: 200, cols: 3 },
-];
-
-function cardSizeFor(count: number) {
-  if (count <= 1) return { w: 72, h: 44 };
-  if (count <= 3) return { w: 62, h: 40 };
-  if (count <= 4) return { w: 56, h: 36 };
-  if (count <= 5) return { w: 50, h: 34 };
-  return { w: 46, h: 32 };
 }
 
-function positionInZone(
-  zone: Zone,
-  index: number,
-  count: number,
-  card: { w: number; h: number }
-) {
-  const pad = 12;
-  const labelPad = zone.key === "cpu" ? 0 : 18;
-  const innerW = zone.w - pad * 2;
-  const innerH = zone.h - pad - labelPad - pad;
+const VB_W = 920;
+const STAGE_PAD = 16;
+const LABEL_PAD = 22;
+const INNER_PAD = 12;
+const CARD_GAP = 8;
 
-  if (zone.key === "cpu") {
-    return {
-      x: zone.x + (zone.w - card.w) / 2,
-      y: zone.y + (zone.h - card.h) / 2 + 6,
-    };
-  }
-
-  const cols = Math.max(1, Math.min(zone.cols, count || 1));
-  const rows = Math.ceil((count || 1) / cols);
-
-  const gapX = cols > 1 ? Math.max(4, (innerW - cols * card.w) / (cols - 1)) : 0;
-  const gapY =
-    rows > 1 ? Math.max(4, (innerH - rows * card.h) / (rows - 1)) : 0;
-
-  const col = index % cols;
-  const row = Math.floor(index / cols);
-
-  const totalW = cols * card.w + (cols - 1) * gapX;
-  const totalH = rows * card.h + (rows - 1) * gapY;
-  const startX = zone.x + pad + (innerW - totalW) / 2;
-  const startY = zone.y + pad + labelPad + Math.max(0, (innerH - totalH) / 2);
-
-  return {
-    x: startX + col * (card.w + gapX),
-    y: startY + row * (card.h + gapY),
-  };
+function cardSizeFor(count: number) {
+  if (count <= 1) return { w: 78, h: 48 };
+  if (count <= 3) return { w: 68, h: 44 };
+  if (count <= 4) return { w: 60, h: 38 };
+  if (count <= 5) return { w: 54, h: 34 };
+  return { w: 48, h: 32 };
 }
 
 export function SchedulerStage() {
@@ -95,100 +48,166 @@ export function SchedulerStage() {
     () => deriveSnapshots(processes, events, segments, t),
     [processes, events, segments, t]
   );
-
   const snapMap = new Map(snapshots.map((s) => [s.pid, s]));
-
   const countsByZone = useMemo(() => {
     const m = new Map<ZoneKey, number>();
     for (const s of snapshots) m.set(s.zone, (m.get(s.zone) ?? 0) + 1);
     return m;
   }, [snapshots]);
 
-  const card = cardSizeFor(processes.length);
+  const total = processes.length;
+  const card = cardSizeFor(total);
+  const cpuW = Math.max(120, card.w + 40);
+
+  // 计算每个区域所需的最小尺寸
+  const upcomingCount = countsByZone.get("upcoming") ?? 0;
+  const doneCount = countsByZone.get("done") ?? 0;
+  const readyCount = countsByZone.get("ready") ?? 0;
+  const blockedCount = countsByZone.get("blocked") ?? 0;
+
+  // 上部：upcoming + done 横排，等高
+  // upcoming 宽度按其最大可能容量（=processes.length）需要的列数算最小宽
+  const topRowH = computeRowHeight(Math.max(upcomingCount, 0), 3, card);
+  const topZoneH = Math.max(70, topRowH);
+
+  const upcomingZone = {
+    x: STAGE_PAD,
+    y: STAGE_PAD,
+    w: 220,
+    h: topZoneH,
+  };
+  const doneZone = {
+    x: upcomingZone.x + upcomingZone.w + 16,
+    y: STAGE_PAD,
+    w: VB_W - upcomingZone.x - upcomingZone.w - 16 - STAGE_PAD,
+    h: topZoneH,
+  };
+
+  // 中部：ready (左) + cpu (中) + blocked (右)
+  // ready/blocked 高度根据各自所需 + 容量（保证 6 进程不溢出）
+  // 列数根据宽度推断
+  const readyW = 360;
+  const blockedW = 280;
+  const readyCols = Math.max(1, Math.floor((readyW - INNER_PAD * 2) / (card.w + CARD_GAP)));
+  const blockedCols = Math.max(1, Math.floor((blockedW - INNER_PAD * 2) / (card.w + CARD_GAP)));
+
+  // 假设最坏情况：所有进程都堆在 ready / blocked
+  const readyCapacity = Math.max(readyCount, Math.min(total, total));
+  const blockedCapacity = Math.max(blockedCount, Math.min(total, total));
+  const readyH = Math.max(170, computeRowHeight(readyCapacity, readyCols, card));
+  const blockedH = Math.max(170, computeRowHeight(blockedCapacity, blockedCols, card));
+  const middleH = Math.max(readyH, blockedH);
+
+  const readyZone = {
+    x: STAGE_PAD,
+    y: upcomingZone.y + upcomingZone.h + 16,
+    w: readyW,
+    h: middleH,
+  };
+  const cpuZone = {
+    x: readyZone.x + readyZone.w + 16,
+    y: readyZone.y,
+    w: cpuW,
+    h: middleH,
+  };
+  const blockedZone = {
+    x: cpuZone.x + cpuZone.w + 16,
+    y: readyZone.y,
+    w: VB_W - (cpuZone.x + cpuZone.w + 16) - STAGE_PAD,
+    h: middleH,
+  };
+
+  const stageH = readyZone.y + middleH + STAGE_PAD;
+
+  const zones: { zone: Zone; rect: typeof upcomingZone; cols: number }[] = [
+    { zone: { key: "upcoming", label: "待到达", cols: 3, tone: "upcoming" }, rect: upcomingZone, cols: 3 },
+    { zone: { key: "done", label: "完成队列", cols: Math.max(1, Math.floor((doneZone.w - INNER_PAD * 2) / (card.w + CARD_GAP))) }, rect: doneZone, cols: Math.max(1, Math.floor((doneZone.w - INNER_PAD * 2) / (card.w + CARD_GAP))) },
+    { zone: { key: "ready", label: "就绪队列", cols: readyCols }, rect: readyZone, cols: readyCols },
+    { zone: { key: "cpu", label: "CPU", cols: 1, tone: "cpu" }, rect: cpuZone, cols: 1 },
+    { zone: { key: "blocked", label: "阻塞队列", cols: blockedCols }, rect: blockedZone, cols: blockedCols },
+  ];
+
+  const positionFor = (
+    rect: { x: number; y: number; w: number; h: number },
+    cols: number,
+    index: number,
+    isCpu = false
+  ) => {
+    if (isCpu) {
+      return {
+        x: rect.x + (rect.w - card.w) / 2,
+        y: rect.y + (rect.h - card.h) / 2,
+      };
+    }
+    const innerW = rect.w - INNER_PAD * 2;
+    const innerH = rect.h - INNER_PAD - LABEL_PAD - INNER_PAD;
+    const c = Math.max(1, cols);
+    const col = index % c;
+    const row = Math.floor(index / c);
+    const stepX = card.w + CARD_GAP;
+    const stepY = card.h + CARD_GAP;
+    const startX = rect.x + INNER_PAD + Math.max(0, (innerW - (c * card.w + (c - 1) * CARD_GAP)) / 2);
+    const startY = rect.y + INNER_PAD + LABEL_PAD;
+    void innerH;
+    return { x: startX + col * stepX, y: startY + row * stepY };
+  };
 
   return (
     <div className="glass-subtle relative w-full overflow-hidden rounded-2xl p-4">
       <svg
-        viewBox={`0 0 ${VB.w} ${VB.h}`}
+        viewBox={`0 0 ${VB_W} ${stageH}`}
         className="block h-auto w-full"
         role="img"
         aria-label="进程调度舞台"
       >
-        <defs>
-          <marker
-            id="arrow-h"
-            viewBox="0 0 10 10"
-            refX="9"
-            refY="5"
-            markerWidth="6"
-            markerHeight="6"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
-          </marker>
-        </defs>
-
-        {ZONES.map((z) => (
-          <g key={z.key}>
+        {zones.map(({ zone, rect }) => (
+          <g key={zone.key}>
             <rect
-              x={z.x}
-              y={z.y}
-              width={z.w}
-              height={z.h}
+              x={rect.x}
+              y={rect.y}
+              width={rect.w}
+              height={rect.h}
               rx={16}
               ry={16}
               className={cn(
-                "fill-white/60 stroke-ink/10 dark:fill-white/5 dark:stroke-white/10",
-                z.tone === "cpu" &&
-                  "fill-brand/[0.08] stroke-brand/45 dark:fill-brand/10 dark:stroke-brand/45"
+                "fill-white/55 stroke-ink/10 dark:fill-white/5 dark:stroke-white/10",
+                zone.tone === "cpu" &&
+                  "fill-brand/[0.08] stroke-brand/45 dark:fill-brand/10"
               )}
               strokeWidth={1.2}
             />
             <text
-              x={z.x + 14}
-              y={z.y + 16}
+              x={rect.x + 14}
+              y={rect.y + 16}
               className="fill-ink-soft"
               fontSize={11}
               fontFamily="var(--font-mono), monospace"
               fontWeight={600}
             >
-              {z.label}
+              {zone.label}
             </text>
             <text
-              x={z.x + z.w - 14}
-              y={z.y + 16}
+              x={rect.x + rect.w - 14}
+              y={rect.y + 16}
               textAnchor="end"
-              className={cn(
-                "fill-ink-faint",
-                z.tone === "cpu" && "fill-brand"
-              )}
+              className={cn("fill-ink-faint", zone.tone === "cpu" && "fill-brand")}
               fontSize={10}
               fontFamily="var(--font-mono), monospace"
             >
-              {z.tone === "cpu" ? "处理机" : `${countsByZone.get(z.key) ?? 0}`}
+              {zone.tone === "cpu" ? "处理机" : `${countsByZone.get(zone.key) ?? 0}`}
             </text>
           </g>
         ))}
 
-        {/* connecting arrows between zones */}
-        <g
-          className="text-ink-faint dark:text-white/30"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.2}
-          strokeDasharray="3 4"
-        >
-          <path d="M 200 110 L 330 150" markerEnd="url(#arrow-h)" />
-          <path d="M 370 240 L 385 240" markerEnd="url(#arrow-h)" />
-          <path d="M 515 240 L 530 240" markerEnd="url(#arrow-h)" />
-          <path d="M 450 138 L 450 118" markerEnd="url(#arrow-h)" />
-        </g>
-
         {processes.map((p) => {
           const snap = snapMap.get(p.id);
-          const zone = ZONES.find((z) => z.key === (snap?.zone ?? "upcoming"))!;
-          const countInZone = countsByZone.get(zone.key) ?? 1;
-          const { x, y } = positionInZone(zone, snap?.indexInZone ?? 0, countInZone, card);
+          const z = zones.find((zz) => zz.zone.key === (snap?.zone ?? "upcoming"))!;
+          const { x, y } = positionFor(
+            z.rect,
+            z.cols,
+            snap?.indexInZone ?? 0,
+            z.zone.key === "cpu"
+          );
           const color = PROC_COLORS[(p.colorIndex ?? 1) % PROC_COLORS.length];
           const isCpu = snap?.zone === "cpu";
           const isDone = snap?.zone === "done";
@@ -235,7 +254,7 @@ export function SchedulerStage() {
               )}
               <text
                 x={card.w / 2}
-                y={card.h / 2 - (card.h > 34 ? 3 : 0)}
+                y={card.h / 2 - (card.h > 36 ? 4 : 0)}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill="#ffffff"
@@ -274,4 +293,13 @@ export function SchedulerStage() {
       </div>
     </div>
   );
+}
+
+function computeRowHeight(
+  count: number,
+  cols: number,
+  card: { w: number; h: number }
+) {
+  const rows = Math.max(1, Math.ceil(Math.max(count, 1) / Math.max(1, cols)));
+  return INNER_PAD + LABEL_PAD + rows * card.h + (rows - 1) * CARD_GAP + INNER_PAD;
 }
