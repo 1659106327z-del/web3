@@ -16,18 +16,45 @@ const PROC_COLORS = [
   "#7C3AED",
 ];
 
-const VB = { w: 900, h: 0 };
-const ROW_H = 56;
+const VB_W = 920;
+const PAD = 16;
+const INNER_PAD = 10;
+const LABEL_PAD = 18;
+const CARD_GAP = 6;
 const ROW_GAP = 8;
-const TOP_BAR_H = 76;
-const SIDE_W = 130;
+const BADGE_W = 60;
+const SIDE_W = 140;
 
-function cardSizeForCount(n: number) {
-  if (n <= 1) return { w: 70, h: 36 };
-  if (n <= 3) return { w: 60, h: 34 };
-  if (n <= 4) return { w: 54, h: 32 };
-  if (n <= 5) return { w: 48, h: 30 };
-  return { w: 44, h: 28 };
+function cardSizeFor(n: number) {
+  if (n <= 1) return { w: 78, h: 46 };
+  if (n <= 3) return { w: 68, h: 42 };
+  if (n <= 4) return { w: 60, h: 36 };
+  if (n <= 5) return { w: 54, h: 34 };
+  return { w: 48, h: 32 };
+}
+
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+function colsFor(width: number, card: { w: number }) {
+  return Math.max(1, Math.floor((width - INNER_PAD * 2) / (card.w + CARD_GAP)));
+}
+
+function rowsFor(count: number, cols: number) {
+  return Math.max(1, Math.ceil(Math.max(count, 1) / Math.max(1, cols)));
+}
+
+function zoneHeight(rows: number, card: { h: number }, withLabel = true) {
+  return (
+    INNER_PAD * 2 +
+    (withLabel ? LABEL_PAD : 0) +
+    rows * card.h +
+    (rows - 1) * CARD_GAP
+  );
 }
 
 export function MfqStage({ quanta }: { quanta: number[] }) {
@@ -43,88 +70,158 @@ export function MfqStage({ quanta }: { quanta: number[] }) {
     [processes, events, segments, t, totalLevels]
   );
 
-  // 计算总高度
-  const stageH = TOP_BAR_H + totalLevels * ROW_H + (totalLevels - 1) * ROW_GAP + 24;
-  VB.h = stageH;
-  const card = cardSizeForCount(processes.length);
+  const total = processes.length;
+  const card = cardSizeFor(total);
 
-  // 区域定义
-  const upcomingZone = { x: 24, y: 16, w: 200, h: 50 };
-  const doneZone = { x: 240, y: 16, w: VB.w - 240 - 24, h: 50 };
-  const queueWidth = VB.w - 24 - SIDE_W - 24 - 16;
-  const cpuZone = {
-    x: VB.w - SIDE_W - 24,
-    y: TOP_BAR_H,
-    w: SIDE_W,
-    h: ROW_H * Math.max(1, Math.floor((totalLevels + 1) / 2)) + ROW_GAP,
+  // 各区域处理进程数
+  const upcomingCount = snaps.filter((s) => s.zone === "upcoming").length;
+  const doneCount = snaps.filter((s) => s.zone === "done").length;
+  const blockedCount = snaps.filter((s) => s.zone === "blocked").length;
+  const readyCounts = quanta.map(
+    (_, i) => snaps.filter((s) => s.zone === "ready" && s.level === i).length
+  );
+
+  // === 顶排：待到达 + 完成 ===
+  const upcomingW = 240;
+  const doneW = VB_W - PAD * 2 - upcomingW - 16;
+  const upcomingCols = colsFor(upcomingW, card);
+  const doneCols = colsFor(doneW, card);
+  // 为容纳潜在最大数量预留：upcoming 最坏可放 total，done 最坏也可放 total
+  const upcomingRows = Math.max(rowsFor(upcomingCount, upcomingCols), 1);
+  const doneRows = Math.max(rowsFor(doneCount, doneCols), 1);
+  const topH = Math.max(
+    72,
+    zoneHeight(upcomingRows, card),
+    zoneHeight(doneRows, card)
+  );
+
+  const upcomingZone: Rect = {
+    x: PAD,
+    y: PAD,
+    w: upcomingW,
+    h: topH,
   };
-  const blockedZone = {
-    x: VB.w - SIDE_W - 24,
+  const doneZone: Rect = {
+    x: upcomingZone.x + upcomingZone.w + 16,
+    y: PAD,
+    w: doneW,
+    h: topH,
+  };
+
+  // === 中部：Q 队列群（左） + CPU/阻塞（右） ===
+  const queueW = VB_W - PAD * 2 - SIDE_W - 16;
+  const qInnerW = queueW - INNER_PAD * 2 - BADGE_W - 6;
+  const qCols = Math.max(1, Math.floor(qInnerW / (card.w + CARD_GAP)));
+
+  const qRowHeights = readyCounts.map((c) => {
+    const rows = rowsFor(c, qCols);
+    // 单 Q 行最小 h：保证标签徽章能放下
+    return Math.max(56, INNER_PAD * 2 + rows * card.h + (rows - 1) * CARD_GAP);
+  });
+  const middleH =
+    qRowHeights.reduce((a, b) => a + b, 0) + (totalLevels - 1) * ROW_GAP;
+
+  const queueRows = quanta.map((q, i) => {
+    const y =
+      upcomingZone.y +
+      upcomingZone.h +
+      16 +
+      qRowHeights.slice(0, i).reduce((a, b) => a + b, 0) +
+      i * ROW_GAP;
+    return {
+      level: i,
+      q,
+      x: PAD,
+      y,
+      w: queueW,
+      h: qRowHeights[i],
+    };
+  });
+
+  // CPU 与阻塞队列
+  const cpuMinH = Math.max(80, card.h + 36);
+  const blockedCols = colsFor(SIDE_W, card);
+  const blockedRows = rowsFor(blockedCount, blockedCols);
+  const blockedH = Math.max(60, zoneHeight(blockedRows, card));
+  // 优先填充 CPU 高度，余下分给 blocked；若 blocked 需要更多，整体扩大
+  const cpuH = Math.max(cpuMinH, middleH - blockedH - ROW_GAP);
+  const adjustedBlockedH = Math.max(blockedH, middleH - cpuH - ROW_GAP);
+  const sideTotalH = cpuH + ROW_GAP + adjustedBlockedH;
+  const finalMiddleH = Math.max(middleH, sideTotalH);
+
+  // 若 side 总高超过 middleH，需要把空间补给最后一个 Q 行
+  if (sideTotalH > middleH) {
+    const extra = sideTotalH - middleH;
+    queueRows[queueRows.length - 1].h += extra;
+  }
+
+  const cpuZone: Rect = {
+    x: VB_W - PAD - SIDE_W,
+    y: upcomingZone.y + upcomingZone.h + 16,
+    w: SIDE_W,
+    h: cpuH,
+  };
+  const blockedZone: Rect = {
+    x: VB_W - PAD - SIDE_W,
     y: cpuZone.y + cpuZone.h + ROW_GAP,
     w: SIDE_W,
-    h: stageH - cpuZone.y - cpuZone.h - ROW_GAP - 16,
+    h: adjustedBlockedH,
   };
 
-  const queueRows = Array.from({ length: totalLevels }, (_, i) => ({
-    level: i,
-    x: 24,
-    y: TOP_BAR_H + i * (ROW_H + ROW_GAP),
-    w: queueWidth,
-    h: ROW_H,
-    q: quanta[i],
-  }));
+  const stageH = upcomingZone.y + upcomingZone.h + 16 + finalMiddleH + PAD;
 
-  // 给每个 snapshot 计算坐标
-  const positionFor = (zone: { x: number; y: number; w: number; h: number }, idx: number) => {
-    const pad = 8;
-    const innerW = zone.w - pad * 2 - 64; // 留出左侧标签空间
-    const startX = zone.x + pad + 64;
-    const startY = zone.y + (zone.h - card.h) / 2;
-    const step = card.w + 4;
-    const cols = Math.max(1, Math.floor(innerW / step));
-    const col = idx % cols;
-    const row = Math.floor(idx / cols);
-    return { x: startX + col * step, y: startY + row * (card.h + 4) };
+  // === 位置计算 ===
+  const positionInQRow = (
+    row: { x: number; y: number; w: number; h: number },
+    idx: number
+  ) => {
+    const innerX = row.x + INNER_PAD + BADGE_W + 6;
+    const innerY = row.y + INNER_PAD;
+    const col = idx % qCols;
+    const rowIdx = Math.floor(idx / qCols);
+    return {
+      x: innerX + col * (card.w + CARD_GAP),
+      y: innerY + rowIdx * (card.h + CARD_GAP),
+    };
   };
 
-  const positionForSimple = (zone: { x: number; y: number; w: number; h: number }, idx: number, dir: "row" | "col" = "row") => {
-    if (dir === "col") {
-      const pad = 8;
-      const innerH = zone.h - pad * 2;
-      const step = card.h + 4;
-      const cols = Math.max(1, Math.floor(innerH / step));
-      const col = Math.floor(idx / cols);
-      const row = idx % cols;
-      return {
-        x: zone.x + (zone.w - card.w) / 2 + col * (card.w + 4),
-        y: zone.y + pad + row * step,
-      };
-    }
-    const pad = 8;
-    const innerW = zone.w - pad * 2;
-    const startX = zone.x + pad;
-    const startY = zone.y + (zone.h - card.h) / 2;
-    const step = card.w + 4;
-    const cols = Math.max(1, Math.floor(innerW / step));
-    const col = idx % cols;
-    const row = Math.floor(idx / cols);
-    return { x: startX + col * step, y: startY + row * (card.h + 4) };
+  const positionInZone = (
+    rect: Rect,
+    idx: number,
+    cols: number,
+    centered = false
+  ) => {
+    const innerW = rect.w - INNER_PAD * 2;
+    const startX = rect.x + INNER_PAD;
+    const startY = rect.y + INNER_PAD + LABEL_PAD;
+    const c = Math.max(1, cols);
+    const col = idx % c;
+    const rowIdx = Math.floor(idx / c);
+    const xOff = centered
+      ? Math.max(0, (innerW - (c * card.w + (c - 1) * CARD_GAP)) / 2)
+      : 0;
+    return {
+      x: startX + xOff + col * (card.w + CARD_GAP),
+      y: startY + rowIdx * (card.h + CARD_GAP),
+    };
   };
 
-  const cpuPosition = () => ({
+  const cpuPosition = (): { x: number; y: number } => ({
     x: cpuZone.x + (cpuZone.w - card.w) / 2,
     y: cpuZone.y + (cpuZone.h - card.h) / 2,
   });
 
   const positions = new Map<string, { x: number; y: number }>();
   for (const s of snaps) {
-    if (s.zone === "upcoming") positions.set(s.pid, positionForSimple(upcomingZone, s.indexInZone));
-    else if (s.zone === "done") positions.set(s.pid, positionForSimple(doneZone, s.indexInZone));
-    else if (s.zone === "ready") {
+    if (s.zone === "upcoming") {
+      positions.set(s.pid, positionInZone(upcomingZone, s.indexInZone, upcomingCols));
+    } else if (s.zone === "done") {
+      positions.set(s.pid, positionInZone(doneZone, s.indexInZone, doneCols));
+    } else if (s.zone === "ready") {
       const row = queueRows[s.level];
-      if (row) positions.set(s.pid, positionFor(row, s.indexInZone));
+      if (row) positions.set(s.pid, positionInQRow(row, s.indexInZone));
     } else if (s.zone === "blocked") {
-      positions.set(s.pid, positionForSimple(blockedZone, s.indexInZone, "col"));
+      positions.set(s.pid, positionInZone(blockedZone, s.indexInZone, blockedCols, true));
     } else if (s.zone === "cpu") {
       positions.set(s.pid, cpuPosition());
     }
@@ -135,84 +232,86 @@ export function MfqStage({ quanta }: { quanta: number[] }) {
   return (
     <div className="glass-subtle relative w-full overflow-hidden rounded-2xl p-4">
       <svg
-        viewBox={`0 0 ${VB.w} ${stageH}`}
+        viewBox={`0 0 ${VB_W} ${stageH}`}
         className="block h-auto w-full"
         role="img"
         aria-label="MFQ 多级反馈队列舞台"
       >
-        {/* 上排：待到达 / 完成 */}
-        <ZoneRect zone={upcomingZone} label="待到达" rightLabel={`${snaps.filter((s) => s.zone === "upcoming").length}`} />
-        <ZoneRect zone={doneZone} label="完成队列" rightLabel={`${snaps.filter((s) => s.zone === "done").length}`} />
+        <ZoneRect
+          zone={upcomingZone}
+          label="待到达"
+          rightLabel={`${upcomingCount}`}
+        />
+        <ZoneRect zone={doneZone} label="完成队列" rightLabel={`${doneCount}`} />
 
-        {/* 各级就绪队列 */}
-        {queueRows.map((row) => {
-          const count = snaps.filter((s) => s.zone === "ready" && s.level === row.level).length;
-          return (
-            <g key={row.level}>
-              <rect
-                x={row.x}
-                y={row.y}
-                width={row.w}
-                height={row.h}
-                rx={14}
-                ry={14}
-                className="fill-white/55 stroke-ink/10 dark:fill-white/5 dark:stroke-white/10"
-                strokeWidth={1.2}
-              />
-              {/* 左侧标签徽章 */}
-              <rect
-                x={row.x + 8}
-                y={row.y + (row.h - 36) / 2}
-                width={50}
-                height={36}
-                rx={10}
-                ry={10}
-                className="fill-brand/10 stroke-brand/40"
-                strokeWidth={1}
-              />
-              <text
-                x={row.x + 33}
-                y={row.y + row.h / 2 - 4}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="fill-brand"
-                fontSize={11}
-                fontFamily="var(--font-mono), monospace"
-                fontWeight={700}
-              >
-                Q{row.level}
-              </text>
-              <text
-                x={row.x + 33}
-                y={row.y + row.h / 2 + 9}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="fill-brand"
-                fontSize={9}
-                fontFamily="var(--font-mono), monospace"
-                opacity={0.85}
-              >
-                q={row.q}
-              </text>
-              <text
-                x={row.x + row.w - 10}
-                y={row.y + 14}
-                textAnchor="end"
-                className="fill-ink-faint"
-                fontSize={10}
-                fontFamily="var(--font-mono), monospace"
-              >
-                {count} 项
-              </text>
-            </g>
-          );
-        })}
+        {queueRows.map((row, i) => (
+          <g key={row.level}>
+            <rect
+              x={row.x}
+              y={row.y}
+              width={row.w}
+              height={row.h}
+              rx={14}
+              ry={14}
+              className="fill-white/55 stroke-ink/10 dark:fill-white/5 dark:stroke-white/10"
+              strokeWidth={1.2}
+            />
+            {/* 左侧 Q 标签徽章 */}
+            <rect
+              x={row.x + 8}
+              y={row.y + (row.h - 38) / 2}
+              width={BADGE_W - 6}
+              height={38}
+              rx={10}
+              ry={10}
+              className="fill-brand/10 stroke-brand/40"
+              strokeWidth={1}
+            />
+            <text
+              x={row.x + 8 + (BADGE_W - 6) / 2}
+              y={row.y + row.h / 2 - 4}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="fill-brand"
+              fontSize={11}
+              fontFamily="var(--font-mono), monospace"
+              fontWeight={700}
+            >
+              Q{row.level}
+            </text>
+            <text
+              x={row.x + 8 + (BADGE_W - 6) / 2}
+              y={row.y + row.h / 2 + 9}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="fill-brand"
+              fontSize={9}
+              fontFamily="var(--font-mono), monospace"
+              opacity={0.85}
+            >
+              q={row.q}
+            </text>
+            <text
+              x={row.x + row.w - 10}
+              y={row.y + 14}
+              textAnchor="end"
+              className="fill-ink-faint"
+              fontSize={10}
+              fontFamily="var(--font-mono), monospace"
+            >
+              {readyCounts[i]} 项
+            </text>
+          </g>
+        ))}
 
-        {/* CPU + 阻塞 */}
-        <ZoneRect zone={cpuZone} label="CPU" tone="cpu" rightLabel={cpuLevel !== undefined ? `Q${cpuLevel}` : "空闲"} />
-        <ZoneRect zone={blockedZone} label="阻塞队列" rightLabel={`${snaps.filter((s) => s.zone === "blocked").length}`} />
+        <ZoneRect
+          zone={cpuZone}
+          label="CPU"
+          tone="cpu"
+          rightLabel={cpuLevel !== undefined ? `Q${cpuLevel}` : "空闲"}
+        />
+        <ZoneRect zone={blockedZone} label="阻塞" rightLabel={`${blockedCount}`} />
 
-        {/* 进程 */}
         {processes.map((p) => {
           const snap = snaps.find((x) => x.pid === p.id);
           const pos = positions.get(p.id);
@@ -251,7 +350,13 @@ export function MfqStage({ quanta }: { quanta: number[] }) {
                   strokeWidth={2}
                   strokeDasharray="4 3"
                 >
-                  <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="0.8s" repeatCount="indefinite" />
+                  <animate
+                    attributeName="stroke-dashoffset"
+                    from="0"
+                    to="-14"
+                    dur="0.8s"
+                    repeatCount="indefinite"
+                  />
                 </rect>
               )}
               <text
@@ -288,7 +393,7 @@ function ZoneRect({
   tone,
   rightLabel,
 }: {
-  zone: { x: number; y: number; w: number; h: number };
+  zone: Rect;
   label: string;
   tone?: "cpu";
   rightLabel?: string;
