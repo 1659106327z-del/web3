@@ -94,6 +94,7 @@ export function TopBar() {
                 <User className="h-3.5 w-3.5" />
                 <Link
                   href="/account"
+                  prefetch={false}
                   className="max-w-[100px] truncate font-medium text-ink hover:text-brand dark:text-ink-inverse"
                   title={user.username}
                 >
@@ -114,6 +115,7 @@ export function TopBar() {
             ) : (
               <Link
                 href="/account"
+                prefetch={false}
                 className="hidden h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-ink/10 bg-white/40 px-3 text-xs font-medium text-ink backdrop-blur-sm transition-colors hover:bg-white/70 dark:border-white/10 dark:bg-white/5 dark:text-ink-inverse dark:hover:bg-white/10 sm:inline-flex"
               >
                 <LogIn className="h-3.5 w-3.5" /> 登录
@@ -152,6 +154,7 @@ export function TopBar() {
             <div className="mb-5 flex items-center justify-between">
               <Link
                 href="/visualize/fcfs"
+                prefetch={false}
                 className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-ink/5 dark:hover:bg-white/5"
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/90 text-white shadow-soft">
@@ -183,6 +186,7 @@ export function TopBar() {
                   <Link
                     key={href}
                     href={href}
+                    prefetch={false}
                     className={cn(
                       "group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
                       active

@@ -37,7 +37,10 @@ export async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
   url.pathname = "/account";
   url.search = `?next=${encodeURIComponent(pathname + search)}`;
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  // 明确禁止浏览器/CDN 缓存未登录重定向，避免登录后仍从缓存拿到旧 302
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  return response;
 }
 
 export const config = {

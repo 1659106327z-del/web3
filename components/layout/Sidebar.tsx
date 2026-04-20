@@ -58,6 +58,7 @@ export function Sidebar() {
       <div className="glass-panel flex w-full flex-col rounded-2xl px-3 py-5">
         <Link
           href="/visualize/fcfs"
+          prefetch={false}
           className="mb-5 flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-ink/5 dark:hover:bg-white/5"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/90 text-white shadow-soft">
@@ -80,6 +81,7 @@ export function Sidebar() {
               <Link
                 key={href}
                 href={href}
+                prefetch={false}
                 className={cn(
                   "group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
                   active
