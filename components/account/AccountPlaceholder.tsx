@@ -66,9 +66,12 @@ export function AccountPlaceholder() {
         return;
       }
       push(tab === "login" ? "登录成功" : "账户创建成功，已自动登录");
-      await refresh();
       setPassword("");
-      router.replace(explicitNext ?? "/visualize/fcfs");
+      // 登录成功后做硬刷新而非 router.replace：
+      //   - 强制中间件用新 cookie 重新评估请求
+      //   - 避免 React 客户端路由器在「未登录 → 已登录」边界状态下出现
+      //     URL 已变但 RSC 渲染未触发的串场问题
+      window.location.assign(explicitNext ?? "/visualize/fcfs");
     } catch {
       push("网络异常，请检查服务器是否运行", "error");
     } finally {

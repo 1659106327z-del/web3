@@ -42,6 +42,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
+    // 硬刷新到登录页：保证服务端重新评估鉴权状态、清空 RSC 缓存，
+    // 避免「URL 已变 / 页面未变」的客户端路由残留
+    if (typeof window !== "undefined") {
+      window.location.assign("/account");
+    }
   }, []);
 
   useEffect(() => {
