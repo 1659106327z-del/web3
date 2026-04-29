@@ -16,7 +16,7 @@ export const fcfs: Scheduler = {
     }
 
     for (const p of sorted) {
-      if (t < p.arrival) t = p.arrival;
+      if (t < p.arrival) t = p.arrival;// 尚无就绪，快进到下一到达
       events.push({ t, type: "dispatch", pid: p.id });
       segs.push({ pid: p.id, start: t, end: t + p.burst });
       t += p.burst;

@@ -38,9 +38,14 @@ const AXES: Axis[] = [
 ];
 
 const SIZE = 320;
+/** viewBox 外扩留白；四字中文标签 middle 对齐仍需较大边距 */
+const VIEW_PAD = 84;
+const VIEW_SIZE = SIZE + 2 * VIEW_PAD;
 const CX = SIZE / 2;
 const CY = SIZE / 2;
 const R = 110;
+/** 标签相对外圈再外移的像素（过大易贴边被裁切） */
+const LABEL_OUTSET = 20;
 const RINGS = 4;
 
 function angleFor(i: number, n: number) {
@@ -66,9 +71,12 @@ export function RadarChart({ results }: { results: Result[] }) {
   };
 
   return (
-    <div className="grid items-center gap-6 md:grid-cols-[1fr_220px]">
-      <div className="mx-auto w-full max-w-[420px]">
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="block h-auto w-full">
+    <div className="grid min-w-0 items-center gap-6 overflow-visible md:grid-cols-[1fr_220px]">
+      <div className="mx-auto min-w-0 w-full max-w-[460px] overflow-visible px-1">
+        <svg
+          viewBox={`-${VIEW_PAD} -${VIEW_PAD} ${VIEW_SIZE} ${VIEW_SIZE}`}
+          className="block h-auto w-full max-w-full overflow-visible"
+        >
           {/* 同心圈 */}
           {Array.from({ length: RINGS }).map((_, i) => {
             const r = (R * (i + 1)) / RINGS;
@@ -89,10 +97,8 @@ export function RadarChart({ results }: { results: Result[] }) {
             const a = angleFor(i, AXES.length);
             const x = CX + Math.cos(a) * R;
             const y = CY + Math.sin(a) * R;
-            const lx = CX + Math.cos(a) * (R + 22);
-            const ly = CY + Math.sin(a) * (R + 22);
-            const anchor =
-              Math.abs(Math.cos(a)) < 0.2 ? "middle" : Math.cos(a) > 0 ? "start" : "end";
+            const lx = CX + Math.cos(a) * (R + LABEL_OUTSET);
+            const ly = CY + Math.sin(a) * (R + LABEL_OUTSET);
             return (
               <g key={axis.label}>
                 <line
@@ -106,7 +112,7 @@ export function RadarChart({ results }: { results: Result[] }) {
                 <text
                   x={lx}
                   y={ly}
-                  textAnchor={anchor}
+                  textAnchor="middle"
                   dominantBaseline="middle"
                   className="fill-ink-soft"
                   fontSize={11}

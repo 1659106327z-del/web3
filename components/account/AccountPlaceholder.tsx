@@ -145,7 +145,7 @@ export function AccountPlaceholder() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-4 md:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="mx-auto w-full max-w-5xl">
       <Card>
         <div className="mb-4 flex items-center gap-2 text-sm">
           <button
@@ -217,21 +217,6 @@ export function AccountPlaceholder() {
             账户数据存储在本地 SQLite 数据库，密码以 bcrypt（10 轮）哈希后保存。会话通过 HTTP-Only
             Cookie 管理，有效期 30 天，可在多台设备共享同一账号。
           </p>
-        </div>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-brand/5 via-transparent to-accent/5">
-        <div className="mb-2 flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-brand" />
-          <div className="text-sm font-semibold">为什么需要账户</div>
-        </div>
-        <ul className="space-y-2 text-sm leading-6 text-ink-soft">
-          <li>保存自定义进程与算法配置，随时恢复上次演示场景</li>
-          <li>跨设备同步：课堂讲解与个人复习共享同一组用例</li>
-          <li>导出历史对比结果，辅助撰写实验报告</li>
-        </ul>
-        <div className="mt-4 rounded-xl border border-ink/10 bg-white/50 p-3 text-xs text-ink-soft backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
-          无账户也能完整体验所有可视化与对比功能。
         </div>
       </Card>
     </div>

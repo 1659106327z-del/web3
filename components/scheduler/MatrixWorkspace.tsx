@@ -50,7 +50,7 @@ export function MatrixWorkspace() {
         <ProcessInputPanel showPriority={showPriority} />
       </Card>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-4">
         {!processes.length ? (
           <Card>
             <div className="rounded-xl border border-dashed border-ink/15 p-10 text-center text-sm text-ink-soft dark:border-white/15">
